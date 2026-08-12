@@ -43,7 +43,7 @@ export function createApp(router: Router<Record<never, never>, RpcContext>) {
   const handler = new RPCHandler(router);
   const handleRpc = async (c: any, next: any) => {
     try {
-      const req = c.req.raw.clone();
+      const req = c.req.raw;
       const pathname = new URL(req.url).pathname;
       const prefix = pathname.startsWith("/api/rpc")
         ? "/api/rpc"
