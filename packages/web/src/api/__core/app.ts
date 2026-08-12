@@ -43,16 +43,33 @@ export function createApp(router: Router<Record<never, never>, RpcContext>) {
   const handler = new RPCHandler(router);
   const handleRpc = async (c: any, next: any) => {
     try {
-      const prefix = c.req.path.startsWith("/api/rpc") ? "/api/rpc" : "/rpc";
-      const { matched, response } = await handler.handle(c.req.raw, {
+      const req = c.req.raw.clone();
+      const pathname = new URL(req.url).pathname;
+      const prefix = pathname.startsWith("/api/rpc")
+        ? "/api/rpc"
+        : pathname.startsWith("/rpc")
+          ? "/rpc"
+          : "/api/rpc";
+
+      const { matched, response } = await handler.handle(req, {
         prefix,
-        context: { headers: c.req.raw.headers },
+        context: { headers: req.headers },
       });
-      if (matched) return new Response(response.body, response);
+
+      if (matched && response) {
+        return new Response(response.body, response);
+      }
       await next();
     } catch (err: any) {
       console.error("[RPC Error]:", err);
-      return c.json({ error: err?.message || "Internal RPC Error" }, 500);
+      return c.json(
+        {
+          error: err?.message || String(err),
+          name: err?.name,
+          stack: err?.stack,
+        },
+        500,
+      );
     }
   };
 
