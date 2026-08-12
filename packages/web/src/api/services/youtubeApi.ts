@@ -101,7 +101,9 @@ const inflight = new Map<string, Promise<YoutubeTrack[]>>();
 let cooldownUntil = 0;
 
 function apiKey(): string | null {
-  const key = process.env.YOUTUBE_API_KEY?.trim();
+  const key = typeof process !== "undefined" && process?.env?.YOUTUBE_API_KEY
+    ? process.env.YOUTUBE_API_KEY.trim()
+    : null;
   return key && key.length > 0 ? key : null;
 }
 

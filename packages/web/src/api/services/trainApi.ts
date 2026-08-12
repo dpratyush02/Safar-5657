@@ -95,18 +95,19 @@ const NOTICE_NOT_STARTED = "This train hasn't departed yet — showing the sched
 const NOTICE_COMPLETED = "This journey has completed — showing the final run";
 
 function providerBaseUrl(): string {
-  const raw = process.env.TRAIN_API_URL?.trim() || DEFAULT_BASE_URL;
+  const raw = (typeof process !== "undefined" && process?.env?.TRAIN_API_URL ? process.env.TRAIN_API_URL.trim() : "") || DEFAULT_BASE_URL;
   // Tolerate both "https://api.railradar.in" and "https://api.railradar.in/v1".
   return raw.replace(/\/+$/, "").replace(/\/v1$/, "");
 }
 
 function providerKey(): string | undefined {
-  const key = process.env.TRAIN_API_KEY?.trim();
+  const key = typeof process !== "undefined" && process?.env?.TRAIN_API_KEY ? process.env.TRAIN_API_KEY.trim() : undefined;
   return key ? key : undefined;
 }
 
 function refreshMs(): number {
-  const parsed = Number(process.env.TRAIN_STATUS_REFRESH_MS?.trim());
+  const raw = typeof process !== "undefined" && process?.env?.TRAIN_STATUS_REFRESH_MS ? process.env.TRAIN_STATUS_REFRESH_MS.trim() : "";
+  const parsed = Number(raw);
   if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_REFRESH_MS;
   return Math.max(MIN_REFRESH_MS, Math.round(parsed));
 }
