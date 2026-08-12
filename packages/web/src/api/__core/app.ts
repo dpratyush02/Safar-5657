@@ -57,7 +57,7 @@ export function createApp(router: Router<Record<never, never>, RpcContext>) {
       });
 
       if (matched && response) {
-        return new Response(response.body, response);
+        return response;
       }
       await next();
     } catch (err: any) {
