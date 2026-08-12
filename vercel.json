@@ -1,5 +1,6 @@
 {
   "buildCommand": "cd packages/web && bunx vite build",
+  "installCommand": "ELECTRON_SKIP_BINARY_DOWNLOAD=1 bun install",
   "outputDirectory": "packages/web/dist",
   "framework": "vite",
   "rewrites": [
