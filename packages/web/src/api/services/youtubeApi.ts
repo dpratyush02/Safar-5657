@@ -202,7 +202,7 @@ function thumbnailOf(item: SearchItem): string {
 }
 
 async function fetchFromYoutube(query: string): Promise<YoutubeTrack[]> {
-  const search = (await call("search", {
+  let search = (await call("search", {
     part: "snippet",
     type: "video",
     // 10 = Music category, keeps results musical instead of vlogs and reactions.
@@ -212,7 +212,18 @@ async function fetchFromYoutube(query: string): Promise<YoutubeTrack[]> {
     q: query,
   })) as { items?: SearchItem[] };
 
-  const items = Array.isArray(search.items) ? search.items : [];
+  let items = Array.isArray(search.items) ? search.items : [];
+  if (items.length === 0) {
+    search = (await call("search", {
+      part: "snippet",
+      type: "video",
+      videoEmbeddable: "true",
+      maxResults: String(MAX_RESULTS),
+      q: query,
+    })) as { items?: SearchItem[] };
+    items = Array.isArray(search.items) ? search.items : [];
+  }
+
   const base = items
     .map((item) => ({
       videoId: item.id?.videoId ?? "",

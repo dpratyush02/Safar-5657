@@ -1,0 +1,9 @@
+{
+  "buildCommand": "bun run build:web",
+  "outputDirectory": "packages/web/dist",
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/packages/web/api/[[...route]]" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

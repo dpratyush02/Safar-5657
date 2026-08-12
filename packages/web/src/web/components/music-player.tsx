@@ -53,12 +53,12 @@ export function MusicPlayer({
   }, [query]);
 
   useEffect(() => {
-    if (expanded && searchAvailable) {
+    if (expanded) {
       const id = window.setTimeout(() => inputRef.current?.focus(), 420);
       return () => window.clearTimeout(id);
     }
     return undefined;
-  }, [expanded, searchAvailable]);
+  }, [expanded]);
 
   const search = useMusicSearch(debounced);
   const results = useMemo<Track[]>(
@@ -167,28 +167,21 @@ export function MusicPlayer({
                             onChange={(e) => setQuery(e.target.value)}
                             placeholder="Search a song, artist or album..."
                             aria-label="Search music"
-                            disabled={!searchAvailable}
-                            className="w-full bg-transparent text-[13px] text-offwhite placeholder:text-cream/28 focus:outline-none disabled:cursor-not-allowed"
+                            className="w-full bg-transparent text-[13px] text-offwhite placeholder:text-cream/28 focus:outline-none"
                           />
                         </div>
 
                         <div className="safar-scroll mt-3 max-h-[38vh] space-y-0.5 overflow-y-auto pr-1 sm:max-h-[34vh]">
-                          {!searchAvailable && (
-                            <Hint>
-                              Music search isn&apos;t configured — the onboard tracks are in the
-                              queue.
-                            </Hint>
-                          )}
-                          {searchAvailable && debounced.trim() === "" && (
+                          {debounced.trim() === "" && (
                             <Hint>
                               Try an artist, a film or a mood — Arijit Singh, Ilaiyaraaja, lo-fi
                               tabla.
                             </Hint>
                           )}
-                          {searchAvailable && searchFailed && (
+                          {debounced.trim() !== "" && searchFailed && (
                             <Hint>Music search isn&apos;t available right now.</Hint>
                           )}
-                          {searchAvailable && !searchFailed && searchNotice && (
+                          {debounced.trim() !== "" && !searchFailed && searchNotice && (
                             <Hint>{searchNotice}</Hint>
                           )}
                           {results.map((result) => (
