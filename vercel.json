@@ -1,5 +1,5 @@
 {
-  "buildCommand": "node -e \"if (require('fs').existsSync('packages/web')) { process.chdir('packages/web'); } require('child_process').execSync('bunx vite build', {stdio: 'inherit'});\"",
+  "buildCommand": "bun run --cwd packages/web build",
   "installCommand": "ELECTRON_SKIP_BINARY_DOWNLOAD=1 bun install",
   "outputDirectory": "packages/web/dist",
   "framework": "vite",
