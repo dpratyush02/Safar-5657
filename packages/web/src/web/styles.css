@@ -1,0 +1,274 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Karla:wght@300..700&display=swap");
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* SAFAR palette */
+  --color-ink: var(--ink);
+  --color-brown: var(--brown);
+  --color-cream: var(--cream);
+  --color-offwhite: var(--offwhite);
+  --color-ember: var(--ember);
+  --color-rust: var(--rust);
+  --color-live: var(--live);
+
+  --font-display: "Fraunces", "Georgia", serif;
+  --font-sans: "Karla", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --radius: 0.5rem;
+
+  --ink: #16110e;
+  --brown: #2a1b12;
+  --cream: #f4ebdd;
+  --offwhite: #fbf6ee;
+  --ember: #d98a4b;
+  --rust: #c9743a;
+  --live: #8cbe86;
+
+  --background: var(--ink);
+  --foreground: var(--cream);
+  --card: rgba(22, 17, 14, 0.6);
+  --card-foreground: var(--cream);
+  --popover: rgba(22, 17, 14, 0.82);
+  --popover-foreground: var(--cream);
+  --primary: var(--ember);
+  --primary-foreground: #1b1209;
+  --secondary: rgba(244, 235, 221, 0.08);
+  --secondary-foreground: var(--cream);
+  --muted: rgba(244, 235, 221, 0.06);
+  --muted-foreground: rgba(244, 235, 221, 0.55);
+  --accent: rgba(217, 138, 75, 0.16);
+  --accent-foreground: var(--offwhite);
+  --destructive: #c05a3f;
+  --border: rgba(244, 235, 221, 0.14);
+  --input: rgba(244, 235, 221, 0.16);
+  --ring: rgba(217, 138, 75, 0.5);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-ink text-cream;
+    font-family: var(--font-sans);
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  ::selection {
+    background: rgba(217, 138, 75, 0.35);
+    color: var(--offwhite);
+  }
+
+  input {
+    font-family: var(--font-sans);
+  }
+
+  /* Thin, warm scrollbars inside overlays */
+  .safar-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(244, 235, 221, 0.22) transparent;
+  }
+  .safar-scroll::-webkit-scrollbar {
+    width: 4px;
+  }
+  .safar-scroll::-webkit-scrollbar-thumb {
+    background: rgba(244, 235, 221, 0.22);
+    border-radius: 999px;
+  }
+}
+
+@layer utilities {
+  /* Small uppercase interface label — the core UI voice of the site */
+  .label {
+    font-family: var(--font-sans);
+    font-size: 0.625rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .label-sm {
+    font-family: var(--font-sans);
+    font-size: 0.5625rem;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .display {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-variation-settings: "opsz" 96, "SOFT" 0;
+  }
+
+  .glass {
+    background: rgba(22, 17, 14, 0.52);
+    backdrop-filter: blur(18px) saturate(120%);
+    -webkit-backdrop-filter: blur(18px) saturate(120%);
+    border: 1px solid rgba(244, 235, 221, 0.14);
+  }
+
+  .glass-deep {
+    background: rgba(18, 13, 10, 0.8);
+    backdrop-filter: blur(26px) saturate(115%);
+    -webkit-backdrop-filter: blur(26px) saturate(115%);
+    border: 1px solid rgba(244, 235, 221, 0.12);
+  }
+
+  /* Film grain — a data-URI fractal noise tile, animated in tiny steps */
+  .grain::after {
+    content: "";
+    position: absolute;
+    inset: -50%;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='160' height='160' filter='url(%23n)' opacity='0.42'/></svg>");
+    opacity: 0.13;
+    mix-blend-mode: overlay;
+    animation: grain-shift 7s steps(6) infinite;
+  }
+
+  @keyframes grain-shift {
+    0% {
+      transform: translate(0, 0);
+    }
+    20% {
+      transform: translate(-2%, 1.5%);
+    }
+    40% {
+      transform: translate(1.5%, -2%);
+    }
+    60% {
+      transform: translate(-1%, -1%);
+    }
+    80% {
+      transform: translate(2%, 1%);
+    }
+    100% {
+      transform: translate(0, 0);
+    }
+  }
+
+  .breathe {
+    animation: breathe 34s ease-in-out infinite alternate;
+  }
+
+  @keyframes breathe {
+    from {
+      transform: scale(1.02);
+    }
+    to {
+      transform: scale(1.07);
+    }
+  }
+
+  .pulse-ring {
+    animation: pulse-ring 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  }
+
+  @keyframes pulse-ring {
+    0% {
+      transform: scale(0.7);
+      opacity: 0.75;
+    }
+    70% {
+      transform: scale(2.6);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(2.6);
+      opacity: 0;
+    }
+  }
+
+  /* Range inputs (seek + volume) styled as thin warm rails */
+  .rail {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+  }
+  .rail::-webkit-slider-runnable-track {
+    height: 2px;
+    border-radius: 999px;
+    background: rgba(244, 235, 221, 0.18);
+  }
+  .rail::-moz-range-track {
+    height: 2px;
+    border-radius: 999px;
+    background: rgba(244, 235, 221, 0.18);
+  }
+  .rail::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 9px;
+    width: 9px;
+    margin-top: -3.5px;
+    border-radius: 999px;
+    background: var(--offwhite);
+    box-shadow: 0 0 0 3px rgba(217, 138, 75, 0.28);
+    transition: transform 0.2s ease;
+  }
+  .rail::-moz-range-thumb {
+    height: 9px;
+    width: 9px;
+    border: none;
+    border-radius: 999px;
+    background: var(--offwhite);
+  }
+  .rail:hover::-webkit-slider-thumb {
+    transform: scale(1.25);
+  }
+
+  .hairline {
+    background: linear-gradient(
+      to right,
+      transparent,
+      rgba(244, 235, 221, 0.18),
+      transparent
+    );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .breathe,
+  .grain::after,
+  .pulse-ring {
+    animation: none !important;
+  }
+}
