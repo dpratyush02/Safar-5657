@@ -257,7 +257,6 @@ export function usePlayer(): PlayerController {
         const mount = document.createElement("div");
         host.appendChild(mount);
         const player = new YT.Player(mount, {
-          host: "https://www.youtube-nocookie.com",
           playerVars: {
             controls: 0,
             disablekb: 1,

@@ -36,17 +36,23 @@ export function createApp(router: Router<Record<never, never>, RpcContext>) {
     }),
   );
 
-  app.get("/api/health", (c) => c.json({ status: "ok" }, 200));
+  const healthHandler = (c: any) => c.json({ status: "ok" }, 200);
+  app.get("/api/health", healthHandler);
+  app.get("/health", healthHandler);
 
   const handler = new RPCHandler(router);
-  app.use("/api/rpc/*", async (c, next) => {
+  const handleRpc = async (c: any, next: any) => {
+    const prefix = c.req.path.startsWith("/api/rpc") ? "/api/rpc" : "/rpc";
     const { matched, response } = await handler.handle(c.req.raw, {
-      prefix: "/api/rpc",
+      prefix,
       context: { headers: c.req.raw.headers },
     });
     if (matched) return c.newResponse(response.body, response);
     await next();
-  });
+  };
+
+  app.use("/api/rpc/*", handleRpc);
+  app.use("/rpc/*", handleRpc);
 
   return app;
 }
