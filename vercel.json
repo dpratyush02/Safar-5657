@@ -1,5 +1,5 @@
 {
-  "buildCommand": "bun run build:web",
+  "buildCommand": "cd packages/web && bunx vite build",
   "outputDirectory": "packages/web/dist",
   "framework": "vite",
   "rewrites": [
