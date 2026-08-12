@@ -1,6 +1,6 @@
 {
-  "buildCommand": "bun run build",
-  "installCommand": "ELECTRON_SKIP_BINARY_DOWNLOAD=1 bun install",
+  "buildCommand": "bunx vite build",
+  "installCommand": "ELECTRON_SKIP_BINARY_DOWNLOAD=1 bun install --cwd ../..",
   "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [
