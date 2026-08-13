@@ -119,6 +119,7 @@ export function MusicPlayer({
                 transition={{ duration: 0.55, ease: EASE }}
               >
                 <div className="p-5 sm:p-6">
+                  <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-cream/20 sm:hidden" />
                   <div className="flex gap-4 sm:gap-5">
                     <Artwork track={track} playing={player.isPlaying} />
                     <div className="min-w-0 flex-1">

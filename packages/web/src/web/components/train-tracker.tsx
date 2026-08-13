@@ -7,7 +7,7 @@ import { TrainRoute } from "./train-route";
 const EASE = [0.22, 1, 0.36, 1] as const;
 const SUGGESTIONS = ["18402", "12841", "12951", "12626"];
 
-/** Full-screen live train experience: number entry, live status readout and the route map. */
+/** Full-screen & Mobile Draggable Bottom Sheet for live train tracking. */
 export function TrainTracker({
   open,
   onClose,
@@ -24,8 +24,6 @@ export function TrainTracker({
 
   const status = useTrainStatus(open ? trainNumber : null);
   const route = useTrainRoute(open ? trainNumber : null);
-  // The badge follows the data we actually got back, not just what is configured — a provider
-  // outage falls back to demo journeys and says so.
   const isLive = status.data?.source === "live";
 
   const submit = (value: string) => {
@@ -50,12 +48,23 @@ export function TrainTracker({
           transition={{ duration: 0.4 }}
         >
           <motion.div
-            className="glass-deep min-h-full w-full px-5 pb-40 pt-6 sm:px-10 sm:pb-44 sm:pt-10"
-            initial={{ y: 28, filter: "blur(10px)" }}
+            className="glass-deep min-h-full w-full rounded-t-3xl px-5 pb-40 pt-4 sm:rounded-none sm:px-10 sm:pb-44 sm:pt-10"
+            initial={{ y: "100%", filter: "blur(10px)" }}
             animate={{ y: 0, filter: "blur(0px)" }}
-            exit={{ y: 28, filter: "blur(10px)" }}
-            transition={{ duration: 0.6, ease: EASE }}
+            exit={{ y: "100%", filter: "blur(10px)" }}
+            transition={{ duration: 0.55, ease: EASE }}
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={0.2}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 140 || info.velocity.y > 500) {
+                onClose();
+              }
+            }}
           >
+            {/* Mobile Drag Handle Indicator */}
+            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-cream/20 sm:hidden" />
+
             <div className="mx-auto max-w-5xl">
               <header className="flex items-start justify-between gap-6">
                 <div>
@@ -94,124 +103,81 @@ export function TrainTracker({
                     inputMode="numeric"
                     placeholder="18402"
                     autoComplete="off"
-                    className="display min-w-0 flex-1 bg-transparent text-2xl text-offwhite tracking-[0.14em] outline-none placeholder:text-cream/20 sm:text-3xl"
+                    className="display min-w-0 flex-1 bg-transparent text-2xl tracking-[0.14em] text-offwhite outline-none placeholder:text-cream/20 sm:text-3xl"
                   />
                   <button
                     type="submit"
-                    disabled={status.isFetching && status.isLoading}
-                    className="label flex items-center gap-2 rounded-full border border-ember/50 bg-ember/15 px-4 py-2 text-ember transition-colors hover:bg-ember/25 disabled:opacity-50"
+                    className="label group flex items-center gap-2 rounded-full border border-ember/40 bg-ember/15 px-4 py-2 text-ember transition-colors hover:bg-ember hover:text-ink"
                   >
-                    {status.isLoading && trainNumber ? "Locating" : "Track"}
-                    <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
+                    Track
+                    <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                   </button>
                 </div>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  {error ? (
-                    <span className="label-sm text-rust">{error}</span>
-                  ) : (
-                    <>
-                      <span className="label-sm text-cream/25">Try</span>
-                      {SUGGESTIONS.map((s) => (
-                        <button
-                          key={s}
-                          type="button"
-                          onClick={() => submit(s)}
-                          className="label-sm rounded-full border border-cream/12 px-2.5 py-1 text-cream/45 transition-colors hover:border-ember/40 hover:text-ember"
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </>
-                  )}
+                {error && <p className="mt-2 text-xs text-rust">{error}</p>}
+
+                {/* Suggestions */}
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <span className="label-sm mr-1 text-cream/30">Try:</span>
+                  {SUGGESTIONS.map((num) => (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => submit(num)}
+                      className="label-sm rounded-full border border-cream/10 bg-ink/40 px-3 py-1 text-cream/60 transition-colors hover:border-cream/30 hover:text-offwhite"
+                    >
+                      {num}
+                    </button>
+                  ))}
                 </div>
               </form>
 
-              <div className="hairline my-9 h-px" />
-
-              {/* Status */}
-              {!trainNumber && (
-                <p className="max-w-md text-sm leading-relaxed text-cream/40">
-                  Enter a train number to follow the journey — current station, speed, delay and
-                  the road ahead, updating live while your music keeps playing.
-                </p>
+              {/* Status & Route Readout */}
+              {status.isLoading && (
+                <div className="mt-16 text-center">
+                  <p className="label-sm text-ember/70 animate-pulse">Locating train...</p>
+                </div>
               )}
 
-              {trainNumber && status.isLoading && <StatusSkeleton />}
-
-              {trainNumber && status.data && (
-                <div className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr]">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className="display text-4xl text-offwhite sm:text-5xl">
-                        {status.data.trainNumber}
-                      </span>
-                      <span
-                        className={`label-sm flex items-center gap-2 rounded-full border px-2.5 py-1 ${
-                          isLive
-                            ? "border-live/40 text-live"
-                            : "border-cream/15 text-cream/40"
+              {status.data && (
+                <div className="mt-12 space-y-12">
+                  {/* Primary train status overview */}
+                  <div className="grid gap-6 rounded-2xl border border-cream/10 bg-ink/40 p-6 sm:grid-cols-3">
+                    <div>
+                      <span className="label-sm text-cream/35">Train Name</span>
+                      <p className="display mt-1 text-xl text-offwhite">{status.data.trainName}</p>
+                      <p className="mt-1 text-xs text-cream/40">{status.data.trainNumber}</p>
+                    </div>
+                    <div>
+                      <span className="label-sm text-cream/35">Current Speed</span>
+                      <p className="display mt-1 text-xl text-ember">{status.data.speed} km/h</p>
+                      <p className="mt-1 text-xs text-cream/40">
+                        {status.data.speed === 0 ? "Stationary at platform" : "In motion"}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="label-sm text-cream/35">Schedule Status</span>
+                      <p
+                        className={`display mt-1 text-xl ${
+                          status.data.delayMinutes === 0 ? "text-emerald-400" : "text-amber-400"
                         }`}
                       >
-                        <motion.span
-                          className={`h-1.5 w-1.5 rounded-full ${isLive ? "bg-live" : "bg-cream/40"}`}
-                          animate={{ opacity: [1, 0.25, 1] }}
-                          transition={{ duration: 2, repeat: Infinity }}
-                        />
-                        {isLive ? "Live" : "Demo data"}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-sm text-cream/55">{status.data.trainName}</p>
-                    {status.data.notice && (
-                      <p className="label-sm mt-3 text-cream/35">{status.data.notice}</p>
-                    )}
-
-                    <p className="display mt-6 text-xl text-cream/85 sm:text-2xl">
-                      {status.data.from}
-                      <span className="mx-3 text-ember">→</span>
-                      {status.data.to}
-                    </p>
-
-                    <dl className="mt-8 grid grid-cols-2 gap-x-8 gap-y-7 sm:grid-cols-3">
-                      <Field label="Current station" value={status.data.currentStation} accent />
-                      <Field label="Next station" value={status.data.nextStation} />
-                      <Field label="Current speed" value={`${status.data.speed} km/h`} />
-                      <Field
-                        label="Delay"
-                        value={
-                          status.data.delayMinutes === 0
-                            ? "On time"
-                            : `+${String(status.data.delayMinutes).padStart(2, "0")} min`
-                        }
-                      />
-                      <Field label="Expected arrival" value={status.data.expectedArrival} />
-                      <Field
-                        label="Distance covered"
-                        value={`${status.data.distanceCovered} / ${status.data.totalKm} km`}
-                      />
-                    </dl>
-
-                    <div className="mt-9">
-                      <div className="flex items-baseline justify-between">
-                        <span className="label-sm text-cream/35">Journey progress</span>
-                        <span className="display text-lg text-ember tabular-nums">
-                          {Math.round(status.data.progress)}%
-                        </span>
-                      </div>
-                      <div className="mt-3 h-[3px] w-full overflow-hidden rounded-full bg-cream/12">
-                        <motion.div
-                          className="h-full rounded-full bg-gradient-to-r from-rust to-ember"
-                          animate={{ width: `${status.data.progress}%` }}
-                          transition={{ duration: 1, ease: EASE }}
-                        />
-                      </div>
+                        {status.data.delayMinutes === 0
+                          ? "On Time"
+                          : `+${status.data.delayMinutes} min delay`}
+                      </p>
+                      <p className="mt-1 text-xs text-cream/40">
+                        {isLive ? "Live GPS signal" : "Demo timetable simulation"}
+                      </p>
                     </div>
                   </div>
 
-                  <div className="lg:border-l lg:border-cream/10 lg:pl-12">
-                    <p className="label-sm mb-7 text-cream/35">Route</p>
-                    {route.isLoading && <RouteSkeleton />}
-                    {route.data && <TrainRoute route={route.data} />}
-                  </div>
+                  {/* Route map */}
+                  {route.data && (
+                    <div>
+                      <h3 className="label-sm mb-6 text-cream/35">Route & Stations</h3>
+                      <TrainRoute route={route.data} />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -219,59 +185,5 @@ export function TrainTracker({
         </motion.section>
       )}
     </AnimatePresence>
-  );
-}
-
-function Field({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: string;
-  accent?: boolean;
-}) {
-  return (
-    <div>
-      <dt className="label-sm text-cream/30">{label}</dt>
-      <dd
-        className={`display mt-2 text-lg leading-snug ${accent ? "text-ember" : "text-offwhite"}`}
-      >
-        {value}
-      </dd>
-    </div>
-  );
-}
-
-function StatusSkeleton() {
-  return (
-    <div className="grid gap-12 lg:grid-cols-2">
-      <div className="space-y-4">
-        <div className="h-10 w-40 animate-pulse rounded bg-cream/8" />
-        <div className="h-4 w-60 animate-pulse rounded bg-cream/6" />
-        <div className="mt-8 grid grid-cols-2 gap-6 sm:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="space-y-2">
-              <div className="h-2.5 w-16 animate-pulse rounded bg-cream/6" />
-              <div className="h-5 w-24 animate-pulse rounded bg-cream/8" />
-            </div>
-          ))}
-        </div>
-      </div>
-      <RouteSkeleton />
-    </div>
-  );
-}
-
-function RouteSkeleton() {
-  return (
-    <div className="space-y-6">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-4">
-          <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-cream/10" />
-          <div className="h-4 w-40 animate-pulse rounded bg-cream/6" />
-        </div>
-      ))}
-    </div>
   );
 }

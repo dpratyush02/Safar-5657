@@ -6,13 +6,13 @@ import { Navigation, type OverlayKind } from "../components/navigation";
 import { MusicPlayer } from "../components/music-player";
 import { TrainTracker } from "../components/train-tracker";
 import { AboutOverlay } from "../components/about-overlay";
-import { JourneyAnnouncer } from "../components/journey-announcer";
+import { AmbientControl } from "../components/ambient-control";
+import { BoardingScreen } from "../components/boarding-screen";
+import { StationAnnouncement } from "../components/station-announcement";
 import { usePlayer, type Track } from "../hooks/use-player";
-import {
-  journeyLine,
-  useJourneyAnnouncements,
-} from "../hooks/use-journey-announcements";
-import { useTrainStatus } from "../queries/train";
+import { useJourneyState } from "../hooks/use-journey-state";
+import { useAmbientAudio } from "../hooks/use-ambient-audio";
+import { journeyLine } from "../hooks/use-journey-announcements";
 import { useMusicProvider, useOnboardTracks } from "../queries/music";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -24,15 +24,27 @@ export default function Index() {
   const [playerExpanded, setPlayerExpanded] = useState(false);
   const [journeyMode, setJourneyMode] = useState(false);
   const [trainNumber, setTrainNumber] = useState<string | null>(null);
+  const [boardingComplete, setBoardingComplete] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
 
-  // Status keeps flowing outside the tracker too, so the player line and Journey Mode stay live.
-  const status = useTrainStatus(trainNumber);
+  // Check prefers-reduced-motion
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReducedMotion(media.matches);
+    const onChange = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+
+  // Centralized Journey State & Ambient Audio
+  const journey = useJourneyState(trainNumber);
+  const ambient = useAmbientAudio(journey.isMoving, journeyMode);
+
   const musicProvider = useMusicProvider();
   const onboard = useOnboardTracks();
-  const announcement = useJourneyAnnouncements(status.data, journeyMode);
 
-  // With no YouTube key configured the onboard royalty-free tracks seed the queue once,
-  // so the player is never empty. With search available the queue starts as the user's own.
+  // Seed onboard tracks if no custom YouTube search key configured
   const seeded = useRef(false);
   useEffect(() => {
     if (seeded.current) return;
@@ -81,7 +93,7 @@ export default function Index() {
     });
   }, [player]);
 
-  // Keyboard: space toggles playback, arrows seek, Esc closes whatever is open.
+  // Keyboard controls: Space toggles playback, arrows seek, Esc closes overlays / leaves journey mode
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
@@ -89,7 +101,6 @@ export default function Index() {
         target !== null &&
         (["INPUT", "TEXTAREA"].includes(target.tagName) || target.isContentEditable);
       if (event.key === "Escape") {
-        // Escape must still work while the search field has focus.
         if (overlay) setOverlay(null);
         else if (playerExpanded) setPlayerExpanded(false);
         else if (journeyMode) setJourneyMode(false);
@@ -117,7 +128,16 @@ export default function Index() {
 
   return (
     <main className="relative h-full w-full overflow-hidden">
-      <HeroScene dimmed={overlay !== null} />
+      {!boardingComplete && (
+        <BoardingScreen onComplete={() => setBoardingComplete(true)} />
+      )}
+
+      <HeroScene
+        dimmed={overlay !== null}
+        movementIntensity={journey.movementIntensity}
+        isMoving={journey.isMoving}
+        reducedMotion={reducedMotion}
+      />
 
       <Navigation
         active={overlay}
@@ -127,7 +147,14 @@ export default function Index() {
         onToggleJourneyMode={toggleJourneyMode}
       />
 
-      {/* Track my train — top-left on mobile, bottom-left on desktop */}
+      {/* Ambient Rail Sound Control Bar — Top Right */}
+      {!journeyMode && !trackerOpen && (
+        <div className="fixed right-5 top-20 z-30 sm:right-8 sm:top-8">
+          <AmbientControl ambient={ambient} />
+        </div>
+      )}
+
+      {/* Track my train button — top-left on mobile, bottom-left on desktop */}
       <AnimatePresence>
         {!journeyMode && overlay === null && (
           <motion.div
@@ -144,9 +171,9 @@ export default function Index() {
             >
               <Radio className="h-3.5 w-3.5 text-ember" strokeWidth={1.6} />
               Track my train
-              {status.data && (
+              {journey.status && (
                 <span className="text-ember/80">
-                  {Math.round(status.data.progress)}%
+                  {Math.round(journey.interpolatedProgress)}%
                 </span>
               )}
             </button>
@@ -154,9 +181,15 @@ export default function Index() {
         )}
       </AnimatePresence>
 
-      {/* Journey Mode: quiet status pinned to the corner instead of a panel */}
+      {/* Station Transition Cinematic Announcement */}
+      <StationAnnouncement
+        announcement={journey.announcement}
+        onDismiss={journey.clearAnnouncement}
+      />
+
+      {/* Journey Mode: minimal screensaver status */}
       <AnimatePresence>
-        {journeyMode && status.data && (
+        {journeyMode && journey.status && (
           <motion.div
             className="fixed left-5 top-6 z-30 sm:left-8 sm:top-8"
             initial={{ opacity: 0, y: -12 }}
@@ -165,29 +198,30 @@ export default function Index() {
             transition={{ duration: 0.8, ease: EASE }}
           >
             <p className="label-sm text-cream/30">
-              {status.data.trainNumber} · {status.data.speed} km/h ·{" "}
-              {status.data.delayMinutes === 0 ? "on time" : `+${status.data.delayMinutes} min`}
+              {journey.status.trainNumber} · {journey.smoothedSpeed} km/h ·{" "}
+              {journey.delayMinutes === 0 ? "on time" : `+${journey.delayMinutes} min`}
             </p>
-            <p className="display mt-2 text-lg text-cream/70">{status.data.currentStation}</p>
-            <button
-              type="button"
-              onClick={toggleJourneyMode}
-              className="label-sm mt-4 text-cream/25 transition-colors hover:text-ember"
-            >
-              Leave journey mode
-            </button>
+            <p className="display mt-2 text-lg text-cream/70">{journey.currentStation}</p>
+            <div className="mt-4 flex items-center gap-4">
+              <button
+                type="button"
+                onClick={toggleJourneyMode}
+                className="label-sm text-cream/30 transition-colors hover:text-ember"
+              >
+                Leave journey mode (Esc)
+              </button>
+              <AmbientControl ambient={ambient} />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      <JourneyAnnouncer announcement={journeyMode ? announcement : null} />
 
       <MusicPlayer
         player={player}
         expanded={playerExpanded && !journeyMode}
         onExpandedChange={setPlayerExpanded}
         minimal={journeyMode}
-        journeyLine={trainNumber ? journeyLine(status.data) : null}
+        journeyLine={trainNumber ? journeyLine(journey.status) : null}
         searchAvailable={musicProvider.data?.live ?? false}
       />
 

@@ -1,23 +1,35 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 
-/**
- * The train interior painting is the hero of the whole site: full viewport, untouched artwork,
- * with a very slow breathing scale, pointer parallax, film grain and readability scrims on top.
- */
-export function HeroScene({ dimmed }: { dimmed: boolean }) {
+export function HeroScene({
+  dimmed,
+  movementIntensity = 0,
+  isMoving = false,
+  reducedMotion = false,
+}: {
+  dimmed: boolean;
+  movementIntensity?: number;
+  isMoving?: boolean;
+  reducedMotion?: boolean;
+}) {
   const [loaded, setLoaded] = useState(false);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const frame = useRef(0);
+  const [pointerOffset, setPointerOffset] = useState({ x: 0, y: 0 });
+  const [sceneryOffset, setSceneryOffset] = useState(0);
 
+  const frame = useRef(0);
+  const sceneryFrame = useRef(0);
+
+  // Pointer movement / subtle sway
   useEffect(() => {
+    if (reducedMotion) return;
+
     const onMove = (event: PointerEvent) => {
       if (event.pointerType !== "mouse") return;
       cancelAnimationFrame(frame.current);
       frame.current = requestAnimationFrame(() => {
         const x = (event.clientX / window.innerWidth - 0.5) * 2;
         const y = (event.clientY / window.innerHeight - 0.5) * 2;
-        setOffset({ x: -x * 12, y: -y * 8 });
+        setPointerOffset({ x: -x * 10, y: -y * 6 });
       });
     };
     window.addEventListener("pointermove", onMove);
@@ -25,20 +37,51 @@ export function HeroScene({ dimmed }: { dimmed: boolean }) {
       window.removeEventListener("pointermove", onMove);
       cancelAnimationFrame(frame.current);
     };
-  }, []);
+  }, [reducedMotion]);
+
+  // Continuous subtle horizontal scenery translation driven by train speed
+  useEffect(() => {
+    if (reducedMotion || !isMoving) {
+      setSceneryOffset(0);
+      return;
+    }
+
+    let active = true;
+    let pos = 0;
+
+    const loop = () => {
+      if (!active) return;
+      // Speed multiplier
+      const step = 0.15 + movementIntensity * 0.45;
+      pos = (pos + step) % 40; // subtle loop window
+      setSceneryOffset(-Math.sin(pos * 0.1) * (4 + movementIntensity * 8));
+      sceneryFrame.current = requestAnimationFrame(loop);
+    };
+
+    sceneryFrame.current = requestAnimationFrame(loop);
+    return () => {
+      active = false;
+      cancelAnimationFrame(sceneryFrame.current);
+    };
+  }, [isMoving, movementIntensity, reducedMotion]);
+
+  const totalX = pointerOffset.x + (reducedMotion ? 0 : sceneryOffset);
+  const totalY = pointerOffset.y;
 
   return (
     <div className="grain fixed inset-0 overflow-hidden bg-ink">
       <motion.div
         className="absolute inset-0"
-        animate={{ x: offset.x, y: offset.y }}
-        transition={{ type: "spring", stiffness: 40, damping: 20, mass: 0.8 }}
+        animate={{ x: totalX, y: totalY }}
+        transition={{ type: "spring", stiffness: 35, damping: 25, mass: 0.9 }}
       >
         <motion.img
           src="/images/train-interior.jpg"
           alt="Inside an Indian train coach, looking down the aisle"
           onLoad={() => setLoaded(true)}
-          className="breathe absolute inset-0 h-full w-full object-cover object-center"
+          className={`absolute inset-0 h-full w-full object-cover object-center ${
+            reducedMotion ? "" : "breathe"
+          }`}
           initial={{ opacity: 0, filter: "blur(14px)" }}
           animate={{
             opacity: loaded ? 1 : 0,
@@ -49,9 +92,23 @@ export function HeroScene({ dimmed }: { dimmed: boolean }) {
         />
       </motion.div>
 
+      {/* Moving atmospheric shadow & light overlay when train is in motion */}
+      {isMoving && !reducedMotion && (
+        <motion.div
+          className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-amber-950/10 to-transparent"
+          animate={{ opacity: [0.2, 0.45, 0.2] }}
+          transition={{
+            repeat: Infinity,
+            duration: Math.max(1.2, 3.5 - movementIntensity * 2),
+            ease: "easeInOut",
+          }}
+        />
+      )}
+
       {/* Readability scrims — top and bottom only, so the aisle stays clean */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-ink/85 via-ink/25 to-transparent" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[45vh] bg-gradient-to-t from-ink/92 via-ink/45 to-transparent" />
+
       {/* Vignette */}
       <div
         className="pointer-events-none absolute inset-0"

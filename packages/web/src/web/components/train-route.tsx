@@ -6,8 +6,7 @@ type Route = RouterOutputs["train"]["route"];
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 /**
- * Stylized railway route — deliberately not a map. A single warm rail, filled up to where the
- * train is, with a pulsing "you are here" marker. Ready to take real coordinates later.
+ * Stylized railway route with smooth interpolating moving train marker 🚆.
  */
 export function TrainRoute({ route }: { route: Route }) {
   const { stations, currentIndex, totalKm } = route;
@@ -26,7 +25,7 @@ export function TrainRoute({ route }: { route: Route }) {
 
   return (
     <div className="relative">
-      {/* Rail */}
+      {/* Rail line background */}
       <div className="absolute bottom-3 left-[7px] top-3 w-px bg-cream/15" />
       <motion.div
         className="absolute left-[7px] top-3 w-px origin-top bg-gradient-to-b from-ember/70 to-ember"
@@ -35,6 +34,19 @@ export function TrainRoute({ route }: { route: Route }) {
         transition={{ duration: 1.1, ease: EASE }}
         style={{ maxHeight: "calc(100% - 24px)" }}
       />
+
+      {/* Smoothly interpolating moving train marker icon 🚆 */}
+      <motion.div
+        className="absolute left-[0px] z-20 flex h-4 w-4 -translate-y-1/2 items-center justify-center rounded-full bg-ember text-ink shadow-[0_0_15px_rgba(235,94,40,0.9)]"
+        initial={{ top: "0%" }}
+        animate={{ top: `${railFill}%` }}
+        transition={{ duration: 1.2, ease: EASE }}
+        style={{ marginTop: "12px" }}
+      >
+        <span className="text-[10px]" role="img" aria-label="moving train marker">
+          🚆
+        </span>
+      </motion.div>
 
       <ol className="space-y-6">
         {stations.map((station, i) => {
@@ -83,7 +95,7 @@ export function TrainRoute({ route }: { route: Route }) {
                       animate={{ opacity: [0.35, 1, 0.35] }}
                       transition={{ duration: 2.8, repeat: Infinity }}
                     >
-                      ← you are here
+                      ← current stop
                     </motion.span>
                   )}
                 </div>
