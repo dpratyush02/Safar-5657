@@ -5,13 +5,16 @@ import { HeroScene } from "../components/hero-scene";
 import { Navigation, type OverlayKind } from "../components/navigation";
 import { MusicPlayer } from "../components/music-player";
 import { TrainTracker } from "../components/train-tracker";
-import { AboutOverlay } from "../components/about-overlay";
 import { AmbientControl } from "../components/ambient-control";
 import { StationAnnouncement } from "../components/station-announcement";
+import { JourneyAnnouncer } from "../components/journey-announcer";
 import { usePlayer, type Track } from "../hooks/use-player";
 import { useJourneyState } from "../hooks/use-journey-state";
 import { useAmbientAudio } from "../hooks/use-ambient-audio";
-import { journeyLine } from "../hooks/use-journey-announcements";
+import {
+  journeyLine,
+  useJourneyAnnouncements,
+} from "../hooks/use-journey-announcements";
 import { useMusicProvider, useOnboardTracks } from "../queries/music";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -38,6 +41,10 @@ export default function Index() {
   // Centralized Journey State & Ambient Audio
   const journey = useJourneyState(trainNumber);
   const ambient = useAmbientAudio(journey.isMoving, journeyMode);
+  const journeyAnnouncement = useJourneyAnnouncements(
+    journey.status ?? undefined,
+    journeyMode,
+  );
 
   const musicProvider = useMusicProvider();
   const onboard = useOnboardTracks();
@@ -175,11 +182,14 @@ export default function Index() {
         )}
       </AnimatePresence>
 
-      {/* Station Transition Cinematic Announcement */}
+      {/* Station Transition Cinematic Announcement Title Cards */}
       <StationAnnouncement
         announcement={journey.announcement}
         onDismiss={journey.clearAnnouncement}
       />
+
+      {/* Journey Mode: Drifting station texts overlay in center of screen */}
+      <JourneyAnnouncer announcement={journeyMode ? journeyAnnouncement : null} />
 
       {/* Journey Mode: minimal screensaver status */}
       <AnimatePresence>
@@ -215,7 +225,7 @@ export default function Index() {
         expanded={playerExpanded && !journeyMode}
         onExpandedChange={setPlayerExpanded}
         minimal={journeyMode}
-        journeyLine={trainNumber ? journeyLine(journey.status) : null}
+        journeyLine={trainNumber ? journeyLine(journey.status ?? undefined) : null}
         searchAvailable={musicProvider.data?.live ?? false}
       />
 
@@ -225,8 +235,6 @@ export default function Index() {
         trainNumber={trainNumber}
         onTrack={setTrainNumber}
       />
-
-      <AboutOverlay open={overlay === "about"} onClose={closeOverlay} />
     </main>
   );
 }

@@ -24,19 +24,19 @@ const AMBIENT_FILES: Record<AmbientSoundTrack, string> = {
 };
 
 /**
- * Web Audio procedural ambient train sound synthesizer fallback.
- * Generates low warm rail rumble, track clatter rhythm, and coach fan hum.
+ * Web Audio procedural ambient train sound synthesizer.
+ * Synthesizes low warm rail rumble, periodic rail-joint "clack-clack" rhythm, and coach fan hum.
  */
 class ProceduralAmbientSynth {
   private ctx: AudioContext | null = null;
-  private gainNode: GainNode | null = null;
+  private masterGain: GainNode | null = null;
   private isRunning = false;
-  private timer: number | null = null;
+  private rhythmTimer: number | null = null;
 
   start(targetVolume: number) {
     if (this.isRunning) {
-      if (this.gainNode && this.ctx) {
-        this.gainNode.gain.setTargetAtTime(targetVolume * 0.18, this.ctx.currentTime, 0.1);
+      if (this.masterGain && this.ctx) {
+        this.masterGain.gain.setTargetAtTime(targetVolume * 0.35, this.ctx.currentTime, 0.1);
       }
       return;
     }
@@ -45,19 +45,22 @@ class ProceduralAmbientSynth {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtx) return;
       this.ctx = new AudioCtx();
+      if (this.ctx.state === "suspended") {
+        void this.ctx.resume();
+      }
 
-      this.gainNode = this.ctx.createGain();
-      this.gainNode.gain.setValueAtTime(targetVolume * 0.18, this.ctx.currentTime);
-      this.gainNode.connect(this.ctx.destination);
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.setValueAtTime(targetVolume * 0.35, this.ctx.currentTime);
+      this.masterGain.connect(this.ctx.destination);
 
-      // Low train rumble noise generator
+      // 1. Continuous Low Train Rumble (Brownian noise filtered)
       const bufferSize = this.ctx.sampleRate * 2;
       const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
       const output = noiseBuffer.getChannelData(0);
       let lastOut = 0.0;
       for (let i = 0; i < bufferSize; i++) {
         const white = Math.random() * 2 - 1;
-        output[i] = (lastOut + 0.02 * white) / 1.02; // Brown/pink filter
+        output[i] = (lastOut + 0.02 * white) / 1.02;
         lastOut = output[i];
       }
 
@@ -67,21 +70,54 @@ class ProceduralAmbientSynth {
 
       const lowpass = this.ctx.createBiquadFilter();
       lowpass.type = "lowpass";
-      lowpass.frequency.value = 180;
+      lowpass.frequency.value = 160;
 
       noiseNode.connect(lowpass);
-      lowpass.connect(this.gainNode);
+      lowpass.connect(this.masterGain);
       noiseNode.start();
 
-      // Coach ceiling fan hum
+      // 2. Coach Ceiling Fan Hum
       const fanOsc = this.ctx.createOscillator();
       fanOsc.type = "sine";
-      fanOsc.frequency.value = 54;
+      fanOsc.frequency.value = 52;
       const fanGain = this.ctx.createGain();
-      fanGain.gain.value = 0.08;
+      fanGain.gain.value = 0.12;
       fanOsc.connect(fanGain);
-      fanGain.connect(this.gainNode);
+      fanGain.connect(this.masterGain);
       fanOsc.start();
+
+      // 3. Periodic Rail-Joint "clack-clack" rhythm generator
+      const triggerRailJoint = () => {
+        if (!this.ctx || !this.masterGain) return;
+        const now = this.ctx.currentTime;
+
+        // Double click: "clack... clack"
+        [0, 0.12].forEach((offset) => {
+          const clickOsc = this.ctx!.createOscillator();
+          const clickGain = this.ctx!.createGain();
+          const filter = this.ctx!.createBiquadFilter();
+
+          clickOsc.type = "triangle";
+          clickOsc.frequency.setValueAtTime(320, now + offset);
+          clickOsc.frequency.exponentialRampToValueAtTime(80, now + offset + 0.08);
+
+          filter.type = "bandpass";
+          filter.frequency.value = 400;
+
+          clickGain.gain.setValueAtTime(0.25, now + offset);
+          clickGain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.09);
+
+          clickOsc.connect(filter);
+          filter.connect(clickGain);
+          clickGain.connect(this.masterGain!);
+
+          clickOsc.start(now + offset);
+          clickOsc.stop(now + offset + 0.1);
+        });
+      };
+
+      // Trigger rail-joint clack every ~1.8 seconds
+      this.rhythmTimer = window.setInterval(triggerRailJoint, 1800);
 
       this.isRunning = true;
     } catch {
@@ -90,21 +126,22 @@ class ProceduralAmbientSynth {
   }
 
   setVolume(vol: number) {
-    if (this.ctx && this.gainNode) {
-      this.gainNode.gain.setTargetAtTime(vol * 0.18, this.ctx.currentTime, 0.1);
+    if (this.ctx && this.masterGain) {
+      this.masterGain.gain.setTargetAtTime(vol * 0.35, this.ctx.currentTime, 0.1);
     }
   }
 
   stop() {
     if (!this.isRunning) return;
     try {
-      if (this.timer) window.clearInterval(this.timer);
+      if (this.rhythmTimer) window.clearInterval(this.rhythmTimer);
       this.ctx?.close();
     } catch {
       /* ignore */
     }
     this.ctx = null;
-    this.gainNode = null;
+    this.masterGain = null;
+    this.rhythmTimer = null;
     this.isRunning = false;
   }
 }
@@ -114,13 +151,12 @@ export function useAmbientAudio(
   journeyMode: boolean = false,
 ): AmbientAudioControls {
   const [enabled, setEnabled] = useState(false);
-  const [volume, setVolumeState] = useState(0.25);
+  const [volume, setVolumeState] = useState(0.3);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
 
   const audioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
   const synthRef = useRef<ProceduralAmbientSynth | null>(null);
 
-  // Initialize synth instance
   useEffect(() => {
     synthRef.current = new ProceduralAmbientSynth();
     return () => {
@@ -128,7 +164,6 @@ export function useAmbientAudio(
     };
   }, []);
 
-  // Sync ambient audio playback state
   useEffect(() => {
     if (!enabled) {
       synthRef.current?.stop();
@@ -139,10 +174,13 @@ export function useAmbientAudio(
       return;
     }
 
-    const effectiveVolume = journeyMode ? Math.min(1.0, volume * 1.25) : volume;
-    let playedLocalAsset = false;
+    const effectiveVolume = journeyMode ? Math.min(1.0, volume * 1.2) : volume;
 
-    // Attempt to play local audio files if present
+    // Start procedural synth sound immediately
+    synthRef.current?.start(effectiveVolume);
+    setIsAudioPlaying(true);
+
+    // Also attempt loading local audio assets if present
     Object.entries(AMBIENT_FILES).forEach(([key, src]) => {
       let el = audioElementsRef.current.get(key);
       if (!el) {
@@ -152,21 +190,10 @@ export function useAmbientAudio(
       }
 
       el.volume = Math.max(0, Math.min(1, effectiveVolume * 0.4));
-      el.play()
-        .then(() => {
-          playedLocalAsset = true;
-          setIsAudioPlaying(true);
-        })
-        .catch(() => {
-          /* File not found or blocked by browser policy */
-        });
+      el.play().catch(() => {
+        /* Local asset fallback to synth */
+      });
     });
-
-    // If local mp3s are absent, use procedural audio synth
-    if (!playedLocalAsset) {
-      synthRef.current?.start(effectiveVolume);
-      setIsAudioPlaying(true);
-    }
   }, [enabled, volume, journeyMode, isMoving]);
 
   const toggleAmbience = useCallback(() => {

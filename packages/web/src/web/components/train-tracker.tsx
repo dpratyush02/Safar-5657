@@ -48,19 +48,11 @@ export function TrainTracker({
           transition={{ duration: 0.4 }}
         >
           <motion.div
-            className="glass-deep min-h-full w-full rounded-t-3xl px-5 pb-40 pt-4 sm:rounded-none sm:px-10 sm:pb-44 sm:pt-10"
+            className="glass-deep min-h-full w-full rounded-t-3xl px-5 pb-40 pt-4 touch-pan-y sm:rounded-none sm:px-10 sm:pb-44 sm:pt-10"
             initial={{ y: "100%", filter: "blur(10px)" }}
             animate={{ y: 0, filter: "blur(0px)" }}
             exit={{ y: "100%", filter: "blur(10px)" }}
             transition={{ duration: 0.55, ease: EASE }}
-            drag="y"
-            dragConstraints={{ top: 0, bottom: 0 }}
-            dragElastic={0.2}
-            onDragEnd={(_, info) => {
-              if (info.offset.y > 140 || info.velocity.y > 500) {
-                onClose();
-              }
-            }}
           >
             {/* Mobile Drag Handle Indicator */}
             <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-cream/20 sm:hidden" />

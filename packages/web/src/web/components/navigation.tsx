@@ -1,14 +1,13 @@
 import { AnimatePresence, motion } from "motion/react";
 import { TrainFront } from "lucide-react";
 
-export type OverlayKind = "train" | "music" | "about" | null;
+export type OverlayKind = "train" | "music" | null;
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 const ITEMS: Array<{ key: Exclude<OverlayKind, null>; label: string }> = [
   { key: "train", label: "Train" },
   { key: "music", label: "Music" },
-  { key: "about", label: "About" },
 ];
 
 export function Navigation({
