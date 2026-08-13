@@ -306,6 +306,15 @@ function titleCase(value: string): string {
     .join(" ");
 }
 
+function safeTimeoutSignal(ms: number): AbortSignal {
+  if (typeof AbortSignal !== "undefined" && typeof (AbortSignal as any).timeout === "function") {
+    return (AbortSignal as any).timeout(ms);
+  }
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), ms);
+  return controller.signal;
+}
+
 /** One upstream call per train per refresh window. */
 async function fetchLive(trainNumber: string): Promise<RailRadarLive> {
   const url = `${providerBaseUrl()}/v1/trains/${encodeURIComponent(trainNumber)}/live?haltsOnly=true&includeCoordinates=true`;
@@ -317,7 +326,7 @@ async function fetchLive(trainNumber: string): Promise<RailRadarLive> {
         Authorization: `Bearer ${providerKey()}`,
         Accept: "application/json",
       },
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      signal: safeTimeoutSignal(REQUEST_TIMEOUT_MS),
     });
   } catch {
     throw new ProviderFailure("timeout", "provider unreachable or timed out");

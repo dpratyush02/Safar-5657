@@ -144,6 +144,15 @@ function cleanChannel(raw: string): string {
     .trim();
 }
 
+function safeTimeoutSignal(ms: number): AbortSignal {
+  if (typeof AbortSignal !== "undefined" && typeof (AbortSignal as any).timeout === "function") {
+    return (AbortSignal as any).timeout(ms);
+  }
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), ms);
+  return controller.signal;
+}
+
 async function call(path: string, params: Record<string, string>): Promise<unknown> {
   const key = apiKey();
   if (!key) throw new ProviderFailure("auth", "missing key");
@@ -157,7 +166,7 @@ async function call(path: string, params: Record<string, string>): Promise<unkno
   try {
     response = await fetch(url, {
       headers: { accept: "application/json" },
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      signal: safeTimeoutSignal(REQUEST_TIMEOUT_MS),
     });
   } catch (error) {
     const aborted = error instanceof Error && error.name === "TimeoutError";
