@@ -39,6 +39,8 @@ export function createApp(router: Router<Record<never, never>, RpcContext>) {
   const healthHandler = (c: any) => c.json({ status: "ok" }, 200);
   app.get("/api/health", healthHandler);
   app.get("/health", healthHandler);
+  app.get("/api", healthHandler);
+  app.get("/", healthHandler);
 
   const handler = new RPCHandler(router);
   const handleRpc = async (c: any, next: any) => {
@@ -65,7 +67,6 @@ export function createApp(router: Router<Record<never, never>, RpcContext>) {
       return c.json(
         {
           error: err?.message || String(err),
-          name: err?.name,
           stack: err?.stack,
         },
         500,
@@ -75,6 +76,17 @@ export function createApp(router: Router<Record<never, never>, RpcContext>) {
 
   app.use("/api/rpc/*", handleRpc);
   app.use("/rpc/*", handleRpc);
+
+  app.all("*", (c) =>
+    c.json(
+      {
+        error: "Route not found",
+        path: c.req.path,
+        url: c.req.url,
+      },
+      404,
+    ),
+  );
 
   return app;
 }
