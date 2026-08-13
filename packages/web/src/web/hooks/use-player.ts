@@ -106,13 +106,19 @@ function loadYoutubeApi(): Promise<YTNamespace> {
       resolve(window.YT);
       return;
     }
-    const timeout = window.setTimeout(() => reject(new Error("timeout")), 15_000);
+    const timeout = window.setTimeout(() => {
+      apiPromise = null;
+      reject(new Error("timeout"));
+    }, 15_000);
     const previous = window.onYouTubeIframeAPIReady;
     window.onYouTubeIframeAPIReady = () => {
       previous?.();
       window.clearTimeout(timeout);
       if (window.YT?.Player) resolve(window.YT);
-      else reject(new Error("unavailable"));
+      else {
+        apiPromise = null;
+        reject(new Error("unavailable"));
+      }
     };
     if (!document.querySelector(`script[src="${IFRAME_API_SRC}"]`)) {
       const script = document.createElement("script");
@@ -120,10 +126,14 @@ function loadYoutubeApi(): Promise<YTNamespace> {
       script.async = true;
       script.onerror = () => {
         window.clearTimeout(timeout);
+        apiPromise = null;
         reject(new Error("blocked"));
       };
       document.head.appendChild(script);
     }
+  }).catch((err) => {
+    apiPromise = null;
+    throw err;
   });
   return apiPromise;
 }
@@ -303,7 +313,7 @@ export function usePlayer(): PlayerController {
         ytRef.current = player;
       })
       .catch(() => {
-        if (!cancelled) setError("Playback isn't available right now.");
+        /* YouTube iframe API unavailable (blocked or network); onboard tracks still work */
       });
 
     return () => {
