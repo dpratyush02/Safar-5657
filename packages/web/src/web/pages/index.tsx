@@ -182,13 +182,15 @@ export default function Index() {
         )}
       </AnimatePresence>
 
-      {/* Station Transition Cinematic Announcement Title Cards */}
-      <StationAnnouncement
-        announcement={journey.announcement}
-        onDismiss={journey.clearAnnouncement}
-      />
+      {/* Station Transition Title Cards (Only when NOT in Journey Mode) */}
+      {!journeyMode && (
+        <StationAnnouncement
+          announcement={journey.announcement}
+          onDismiss={journey.clearAnnouncement}
+        />
+      )}
 
-      {/* Journey Mode: Drifting station texts overlay in center of screen */}
+      {/* Journey Mode: Drifting station text in center of screen */}
       <JourneyAnnouncer announcement={journeyMode ? journeyAnnouncement : null} />
 
       {/* Journey Mode: minimal screensaver status */}
@@ -201,12 +203,11 @@ export default function Index() {
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.8, ease: EASE }}
           >
-            <p className="label-sm text-cream/30">
+            <p className="label-sm text-cream/40">
               {journey.status.trainNumber} · {journey.smoothedSpeed} km/h ·{" "}
               {journey.delayMinutes === 0 ? "on time" : `+${journey.delayMinutes} min`}
             </p>
-            <p className="display mt-2 text-lg text-cream/70">{journey.currentStation}</p>
-            <div className="mt-4 flex items-center gap-4">
+            <div className="mt-3 flex items-center gap-4">
               <button
                 type="button"
                 onClick={toggleJourneyMode}
