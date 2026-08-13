@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { base } from "../__core/app";
+import { base } from "../__core/app.js";
 import {
   ONBOARD_TRACKS,
   musicProviderInfo,
   searchMusic,
-} from "../services/youtubeApi";
+} from "../services/youtubeApi.js";
 
 export const music = {
   /**

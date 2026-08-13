@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { base } from "../__core/app";
-import { getTrainRoute, getTrainStatus, providerInfo } from "../services/trainApi";
+import { base } from "../__core/app.js";
+import { getTrainRoute, getTrainStatus, providerInfo } from "../services/trainApi.js";
 
 const trainNumberInput = z.object({
   trainNumber: z

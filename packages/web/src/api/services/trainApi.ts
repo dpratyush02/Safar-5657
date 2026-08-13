@@ -19,7 +19,7 @@
  * is advanced by dead reckoning (last known speed × elapsed time, clamped at the next halt).
  */
 
-import { findMockTrain, type MockTrain } from "../data/mock-trains";
+import { findMockTrain, type MockTrain } from "../data/mock-trains.js";
 
 export type StationStatus = "passed" | "current" | "upcoming";
 
