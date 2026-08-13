@@ -7,7 +7,6 @@ import { MusicPlayer } from "../components/music-player";
 import { TrainTracker } from "../components/train-tracker";
 import { AboutOverlay } from "../components/about-overlay";
 import { AmbientControl } from "../components/ambient-control";
-import { BoardingScreen } from "../components/boarding-screen";
 import { StationAnnouncement } from "../components/station-announcement";
 import { usePlayer, type Track } from "../hooks/use-player";
 import { useJourneyState } from "../hooks/use-journey-state";
@@ -24,7 +23,6 @@ export default function Index() {
   const [playerExpanded, setPlayerExpanded] = useState(false);
   const [journeyMode, setJourneyMode] = useState(false);
   const [trainNumber, setTrainNumber] = useState<string | null>(null);
-  const [boardingComplete, setBoardingComplete] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
 
   // Check prefers-reduced-motion
@@ -128,10 +126,6 @@ export default function Index() {
 
   return (
     <main className="relative h-full w-full overflow-hidden">
-      {!boardingComplete && (
-        <BoardingScreen onComplete={() => setBoardingComplete(true)} />
-      )}
-
       <HeroScene
         dimmed={overlay !== null}
         movementIntensity={journey.movementIntensity}
